@@ -222,6 +222,7 @@ calculate_ntai = function(segs,
     # Prepare return 
     segs_loh = segs[which(segs$lcn == 0), ]
     list(
+        segs = segs,
         ntelomeric_ai = nrow(segs[which(segs$AI == 1), ]), # telomeric AI
         telomeric_ai_mean_size = mean(segs$end[which(segs$AI == 1)] - segs$start[which(segs$AI == 1)]),
         ninterstitial_ai = nrow(segs[which(segs$AI == 2), ]), # interstitial AI

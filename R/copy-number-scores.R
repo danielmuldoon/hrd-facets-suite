@@ -128,7 +128,7 @@ calculate_ntai = function(segs,
                           genome = c('hg19', 'hg18', 'hg38'),
                           algorithm = c('em', 'cncf'),
                           min_size = 0,
-                          min_probes = 250) {
+                          min_probes = 50) {
     
     algorithm = match.arg(algorithm, c('em', 'cncf'), several.ok = FALSE)
     
@@ -357,7 +357,8 @@ parse_segs = function(segs, algorithm = c('em', 'cncf')) {
     }
     mutate(segs,
            length = end - start,
-           lcn = ifelse(tcn <= 1, 0, lcn),  # correct mcn, lcn for cases of tcn = 1 // sometimes FACETS set lcn = NA when tcn = 1, when it clearly has to be 0
+           lcn = ifelse(tcn <= 1, 0,
+                    ifelse(is.na(lcn) & tcn = 1, 0, lcn)),  # correct mcn, lcn for cases of tcn = 1 // sometimes FACETS set lcn = NA when tcn = 1, when it clearly has to be 0
            mcn = tcn - lcn) %>% 
         select(-ends_with('\\.em'))
 }

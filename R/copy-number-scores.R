@@ -219,6 +219,10 @@ calculate_ntai = function(segs,
         }
     }
     
+    # Calculate lowest unbalanced mafR to correct AI = NAs due to low min.nhet
+    lowest_unbalanced_mafR = arrange(segs[which(segs$AI == 1 | segs$AI == 2 | segs$AI == 3)], mafR) %>% head(n=1) %>% .$mafR
+    print(lowest_unbalanced_mafR)
+    
     # Prepare return 
     segs_loh = segs[which(segs$lcn == 0), ]
     list(

@@ -217,6 +217,23 @@ calculate_ntai = function(segs,
         if(nrow(segs[which(segs$chrom == chr), ]) == 1 & segs$AI[which(segs$chrom == chr)][1] != 0){
             segs$AI[which(segs$chrom == chr)[1]] = 3 # if only one segment on chromosome and AI --> chromosomal AI
         }
+    }
+    
+    # Prepare return 
+    segs_loh = segs[which(segs$lcn == 0), ]
+    list(
+        segs = segs,
+        ntelomeric_ai = nrow(segs[which(segs$AI == 1), ]), # telomeric AI
+        telomeric_ai_mean_size = mean(segs$end[which(segs$AI == 1)] - segs$start[which(segs$AI == 1)]),
+        ninterstitial_ai = nrow(segs[which(segs$AI == 2), ]), # interstitial AI
+        interstitial_ai_mean_size = mean(segs$end[which(segs$AI == 2)] - segs$start[which(segs$AI == 2)]),
+        ncentromeric_ai = nrow(segs[which(segs$AI == 3), ]), # chromosomal AI
+        ntelomeric_loh = nrow(segs_loh[which(segs_loh$AI == 1), ]), # telomeric LOH
+        telomeric_loh_mean_size = mean(segs_loh$end[which(segs_loh$AI == 1)] - segs_loh$start[which(segs_loh$AI == 1)]),
+        ninterstitial_loh = nrow(segs_loh[which(segs_loh$AI == 2), ]), # interstitial LOH
+        interstitial_loh_mean_size = mean(segs_loh$end[which(segs_loh$AI == 2)] - segs_loh$start[which(segs_loh$AI == 2)]),
+        ncentromeric_loh = nrow(segs_loh[which(segs_loh$AI == 3), ]) # chromosomal LOH
+    ) 
 }
 
 #' @export 

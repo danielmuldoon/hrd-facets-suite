@@ -217,6 +217,55 @@ calculate_ntai = function(segs,
         if(nrow(segs[which(segs$chrom == chr), ]) == 1 & segs$AI[which(segs$chrom == chr)][1] != 0){
             segs$AI[which(segs$chrom == chr)[1]] = 3 # if only one segment on chromosome and AI --> chromosomal AI
         }
+    
+    # Calculate lowest unbalanced mafR to correct AI = NAs due to low min.nhet
+    lowest_unbalanced_mafR = arrange(segs[which(segs$AI == 1 | segs$AI == 2 | segs$AI == 3)], mafR) %>% head(n=1) %>% .$mafR
+    
+        # Redo loop through chromosomes
+    for (chr in unique(segs$chrom)) {
+
+        # Subset on chromosome, proceed to next if no segment
+        chrom_segs = segs[which(segs$chrom == chr), ]
+        if(nrow(chrom_segs) == 0) next 
+        
+        # Determine major ploidy for chromosome
+        chrom_ploidy = group_by(chrom_segs, tcn) %>% 
+            summarize(tcn_total = sum(length, na.rm = T)) %>%
+            filter(tcn_total == max(tcn_total) & tcn > 0) %>% 
+            pull(tcn)
+        
+        if (length(chrom_ploidy) == 0) { next } 
+        chrom_segs$chrom_ploidy = as.integer(chrom_ploidy) # update "ploidy" column, so the new calculated value can be returned
+        
+        if (chrom_ploidy %% 2 == 0) { # if even
+            chrom_segs$AI = c(0, 2)[match(chrom_segs$mcn == chrom_segs$lcn, c('TRUE', 'FALSE'))]
+            chrom_segs$AI[which(is.na(chrom_segs$AI))] = 0 # adjust NAs
+        } else if (chrom_ploidy %% 2 != 0) { # if odd
+            chrom_segs$AI = c(0, 2)[match(chrom_segs$mcn + chrom_segs$lcn == ploidy &
+                                              chrom_segs$lcn != 0, c('TRUE', 'FALSE'))]
+            chrom_segs$AI[which(is.na(chrom_segs$AI))] = 0 # adjust NAs
+        }
+        
+        # Put back into original seg
+        segs$chrom_ploidy[which(segs$chrom == chr)] = chrom_ploidy
+        segs$AI[which(segs$chrom == chr)] = chrom_segs$AI
+        
+        # Check relative position to centromere
+        if(chrom_segs$AI[1] == 2 & nrow(chrom_segs) != 1 & chrom_segs$end[1] < (sample_chrom_info$centromere[chr])){
+            segs$AI[which(segs$chrom == chr)][1] = 1 # if the first segment of chromosome is AI and does not extend to centromere --> telomeric AI
+        }
+        if(is.na(chrom_segs$AI[1]) & nrow(chrom_segs) != 1 & chrom_segs$end[1] < (sample_chrom_info$centromere[chr]) & chrom_segs$mafR[1] > lowest_unbalanced_mafR){
+            segs$AI[which(segs$chrom == chr)][1] = 1 # if the first segment of chromosome is AI and does not extend to centromere --> telomeric AI
+        }
+        if(chrom_segs$AI[nrow(chrom_segs)] == 2 & nrow(chrom_segs) != 1 & chrom_segs$start[nrow(chrom_segs)] > (sample_chrom_info$centromere[chr])){
+            segs$AI[which(segs$chrom == chr)[nrow(chrom_segs)]] = 1 # if the last segment of chromosome is AI and starts beyond the centromere --> telomeric AI
+        }
+        if(is.na(chrom_segs$AI[nrow(chrom_segs)]) & nrow(chrom_segs) != 1 & chrom_segs$start[nrow(chrom_segs)] > (sample_chrom_info$centromere[chr]) & chrom_segs$mafR[1] > lowest_unbalanced_mafR){
+            segs$AI[which(segs$chrom == chr)[nrow(chrom_segs)]] = 1 # if the last segment of chromosome is AI and starts beyond the centromere --> telomeric AI
+        }
+        if(nrow(segs[which(segs$chrom == chr), ]) == 1 & segs$AI[which(segs$chrom == chr)][1] != 0){
+            segs$AI[which(segs$chrom == chr)[1]] = 3 # if only one segment on chromosome and AI --> chromosomal AI
+        }
     }
     
     # Prepare return 

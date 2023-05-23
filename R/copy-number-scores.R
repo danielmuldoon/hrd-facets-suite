@@ -125,6 +125,7 @@ calculate_loh = function(segs,
 #' @rdname copy_number_scores
 calculate_ntai = function(segs,
                           ploidy,
+                          purity,
                           genome = c('hg19', 'hg18', 'hg38'),
                           algorithm = c('em', 'cncf'),
                           min_size = 0,

@@ -218,7 +218,68 @@ calculate_ntai = function(segs,
             segs$AI[which(segs$chrom == chr)[1]] = 3 # if only one segment on chromosome and AI --> chromosomal AI
         }
     }
-    
+    lowest_unbalanced_mafR <- segs %>% filter(AI == 1 | AI == 
+        2 | AI == 3) %>% arrange(mafR) %>% head(n = 1) %>% .$mafR
+    lowest_unbalanced_mafR = ifelse(unique(segs$AI) == 0, segs %>% 
+        filter(AI == 0) %>% arrange(mafR) %>% head(n = 1) %>% 
+        .$mafR, lowest_unbalanced_mafR)
+    for (chr in unique(segs$chrom)) {
+        chrom_segs = segs[which(segs$chrom == chr), ]
+        if (nrow(chrom_segs) == 0) 
+            next
+        chrom_ploidy = group_by(chrom_segs, tcn) %>% summarize(tcn_total = sum(length, 
+            na.rm = T)) %>% filter(tcn_total == max(tcn_total) & 
+            tcn > 0) %>% pull(tcn)
+        if (length(chrom_ploidy) == 0) {
+            next
+        }
+        chrom_segs$chrom_ploidy = as.integer(chrom_ploidy)
+        if (chrom_ploidy%%2 == 0) {
+            chrom_segs$AI = c(0, 2)[match(chrom_segs$mcn == chrom_segs$lcn, 
+                c("TRUE", "FALSE"))]
+            chrom_segs$AI[which(is.na(chrom_segs$AI))] = 0
+        }
+        else if (chrom_ploidy%%2 != 0) {
+            chrom_segs$AI = c(0, 2)[match(chrom_segs$mcn + chrom_segs$lcn == 
+                ploidy & chrom_segs$lcn != 0, c("TRUE", "FALSE"))]
+            chrom_segs$AI[which(is.na(chrom_segs$AI))] = 0
+        }
+        segs$chrom_ploidy[which(segs$chrom == chr)] = chrom_ploidy
+        segs$AI[which(segs$chrom == chr)] = chrom_segs$AI
+        if (chrom_segs$AI[1] == 2 & nrow(chrom_segs) != 1 & chrom_segs$end[1] < 
+            (sample_chrom_info$centromere[chr])) {
+            segs$AI[which(segs$chrom == chr)][1] = 1
+        }
+        if (chrom_segs$AI[1] == 0 & chrom_segs$tcn.em[1] == 0 & 
+            nrow(chrom_segs) != 1 & chrom_segs$end[1] < (sample_chrom_info$centromere[chr])) {
+            segs$AI[which(segs$chrom == chr)][1] = 1
+        }
+        if (!(is.na(lowest_unbalanced_mafR[1])) & (chrom_segs$AI[1] == 
+            0 & nrow(chrom_segs) != 1) & (chrom_segs$end[1] < 
+            (sample_chrom_info$centromere[chr])) & (chrom_segs$mafR[1] > 
+            lowest_unbalanced_mafR[1])) {
+            segs$AI[which(segs$chrom == chr)][1] = 1
+        }
+        if (chrom_segs$AI[nrow(chrom_segs)] == 2 & nrow(chrom_segs) != 
+            1 & chrom_segs$start[nrow(chrom_segs)] > (sample_chrom_info$centromere[chr])) {
+            segs$AI[which(segs$chrom == chr)[nrow(chrom_segs)]] = 1
+        }
+        if (chrom_segs$AI[nrow(chrom_segs)] == 0 & chrom_segs$tcn.em[nrow(chrom_segs)] == 
+            0 & nrow(chrom_segs) != 1 & chrom_segs$start[nrow(chrom_segs)] > 
+            (sample_chrom_info$centromere[chr])) {
+            segs$AI[which(segs$chrom == chr)[nrow(chrom_segs)]] = 1
+        }
+        if (!(is.na(lowest_unbalanced_mafR[1])) & is.na(chrom_segs$lcn.em[nrow(chrom_segs)]) & 
+            chrom_segs$AI[nrow(chrom_segs)] == 0 & nrow(chrom_segs) != 
+            1 & (chrom_segs$start[nrow(chrom_segs)] > (sample_chrom_info$centromere[chr])) & 
+            chrom_segs$mafR[nrow(chrom_segs)] > lowest_unbalanced_mafR[1]) {
+            segs$AI[which(segs$chrom == chr)[nrow(chrom_segs)]] = 1
+        }
+        if (nrow(segs[which(segs$chrom == chr), ]) == 1 & segs$AI[which(segs$chrom == 
+            chr)][1] != 0) {
+            segs$AI[which(segs$chrom == chr)[1]] = 3
+        }
+    }
     # Calculate lowest unbalanced mafR to correct AI = NAs due to low min.nhet
     lowest_unbalanced_mafR = arrange(segs[which(segs$AI == 1 | segs$AI == 2 | segs$AI == 3)], mafR) %>% head(n=1) %>% .$mafR
     print(lowest_unbalanced_mafR)

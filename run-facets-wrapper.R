@@ -204,7 +204,7 @@ if (dir.exists(directory)) {
 
 # Read SNP counts file
 message(paste('Reading', args$counts_file))
-read_counts = read_snp_changes(args$counts_file)
+read_counts = read_snp_matrix(args$counts_file)
 message(paste('Writing to', directory))
 
 # Determine if running two-pass
